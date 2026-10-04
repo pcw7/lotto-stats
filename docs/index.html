@@ -168,8 +168,9 @@
     .machine.play .m-knob, .machine.play .m-balls, .machine.play .m-out { animation: none; }
   }
   .plus { color: var(--muted); font-weight: 600; margin: 0 2px; }
-  .prize { display: flex; gap: 24px; margin: 0 0 0 auto; }
-  .prize dt { font-size: 12px; color: var(--muted); }
+  .prize { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0 0 0 auto; }
+  .prize dt { display: flex; align-items: center; gap: 4px; min-height: 18px; font-size: 12px; color: var(--muted); }
+  .prize .help { width: 16px; height: 16px; font-size: 10px; }
   .prize dd { margin: 0; font-size: 16px; font-weight: 650; color: var(--ink); }
 
   /* 기간 필터 */
@@ -1175,6 +1176,27 @@
   });
 
   // ------------------------------------------------------------ 기간과 무관한 부분
+  // 복권 당첨금 세금 (2026년 기준): 200만 원 이하는 비과세,
+  // 3억 원까지는 22%(소득세 20% + 지방소득세 2%), 3억 원을 넘는 부분은 33%(소득세 30% + 지방소득세 3%)
+  const TAX_FREE = 2000000;
+  const TAX_STEP = 300000000;
+  function lottoTax(amount) {
+    if (amount <= TAX_FREE) return 0;
+    return Math.min(amount, TAX_STEP) * 0.22 + Math.max(amount - TAX_STEP, 0) * 0.33;
+  }
+
+  function taxHelp(amount) {
+    const tax = lottoTax(amount);
+    const calc = amount > TAX_STEP ? `3억 원 × 22% + (${won(amount)} − 3억 원) × 33%`
+      : amount > TAX_FREE ? `${won(amount)} × 22%` : '200만 원 이하라 세금 없음';
+    return [
+      ['strong', `세금 ${won(tax)} · 실수령 ${won(amount - tax)}`],
+      ['p', `1등 1인당 당첨금 ${won(amount)}에서 세금을 뺀 금액입니다.`],
+      ['p', '복권 당첨금은 3억 원까지는 22%(소득세 20% + 지방소득세 2%), 3억 원을 넘는 부분은 33%(소득세 30% + 지방소득세 3%)를 세금으로 뗍니다. 200만 원 이하는 세금이 없습니다.'],
+      ['p.muted', `계산: ${calc}${tax ? ` = 세금 ${won(tax)}` : ''}. 2026년 세율 기준이며, 실제 지급액은 원 단위 처리 등으로 조금 다를 수 있습니다.`],
+    ];
+  }
+
   function renderStatic() {
     const all = DATA.windows.all;
     $('lede').textContent = `${DATA.first.no}회(${DATA.first.date})부터 ${DATA.last.no}회(${DATA.last.date})까지 ` +
@@ -1190,12 +1212,16 @@
 
     const prize = $('latest-prize');
     const winners = DATA.last.firstWinners;
+    const amount = DATA.last.firstPrize;
+    // [이름, 값, 도움말] — 도움말이 있으면 이름 옆에 ? 버튼을 단다
     const prizeItems = winners > 0
-      ? [['1등 당첨자', `${fmt(winners)}명`], ['1인당 당첨금', won(DATA.last.firstPrize)]]
+      ? [['1등 당첨자', `${fmt(winners)}명`], ['1인당 당첨금', won(amount)],
+        ['실수령액', won(amount - lottoTax(amount)), taxHelp(amount)]]
       : [['1등 당첨자', '없음 (다음 회차로 이월)']];
-    for (const [term, value] of prizeItems) {
+    for (const [term, value, help] of prizeItems) {
       const item = htmlEl('div', '', null, prize);
-      htmlEl('dt', '', term, item);
+      const dt = htmlEl('dt', '', term, item);
+      if (help) bindHelp(htmlEl('button', 'help', '?', dt), term, help);
       htmlEl('dd', '', value, item);
     }
 
