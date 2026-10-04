@@ -362,6 +362,7 @@
   .pick-history li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--grid); }
   .pick-history li:last-child { border-bottom: 0; }
   .records + .sub { margin-top: 12px; }
+  .title-help { display: flex; align-items: center; gap: 8px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   @media (prefers-reduced-motion: reduce) { .ball.pop { animation: none; } }
 
@@ -600,8 +601,8 @@
   <!-- 탭 3: 번호 뽑기 (가챠 추첨기로 무작위 번호 6개) -->
   <div class="panel" id="panel-pick" role="tabpanel" aria-labelledby="tab-pick" hidden>
   <section class="card">
-    <h2>번호 뽑기</h2>
-    <p class="sub">추첨기를 누르면 1~45에서 번호 6개를 무작위로 뽑습니다. 어떤 번호를 고르든 1등 확률은 8,145,060분의 1로 똑같습니다.</p>
+    <h2 class="title-help">번호 뽑기 <button type="button" class="help" id="pick-title-help">?</button></h2>
+    <p class="sub">추첨기를 누르면 1~45에서 번호 6개를 무작위로 뽑습니다.</p>
     <div class="pick-stage">
       <button type="button" class="machine big" id="pick-machine" aria-label="번호 뽑기"></button>
       <div class="pick-main">
@@ -1840,6 +1841,12 @@
       `해당 회차가 많지 않아 배수에는 오차가 있고, ${t.no}회처럼 번호 모양으로는 설명되지 않는 쏠림도 있습니다. ` +
       '판매 게임 수는 87회까지 1게임 2,000원, 88회부터 1,000원으로 계산했습니다.';
 
+    bindHelp($('pick-title-help'), '번호 뽑기', [
+      ['strong', '1등 확률은 8,145,060분의 1로 똑같습니다'],
+      ['p', '1~45에서 번호 6개를 고르는 방법은 8,145,060가지이고, 그중 1등은 한 가지뿐입니다. 어떤 번호를 고르든 1등 확률은 같습니다.'],
+      ['p', '지난 당첨번호의 빈도나 패턴으로는 확률을 높일 수 없습니다. 이 페이지의 분석에서도 번호별 빈도와 모든 번호 패턴이 무작위 추첨과 같게 나왔습니다.'],
+      ['p.muted', '번호는 브라우저의 암호용 난수로 뽑아서, 45개 번호가 모두 같은 확률로 나옵니다.'],
+    ]);
     bindHelp($('pick-help'), '많이 고르는 모양 피하기', [
       ['strong', '당첨 확률은 그대로입니다'],
       ['p', '1등 당첨금은 당첨자끼리 나눠 가집니다. 사람들이 많이 고르는 번호는 당첨돼도 나눠 가질 사람이 많습니다.'],
