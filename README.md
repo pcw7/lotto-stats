@@ -105,7 +105,7 @@ flowchart LR
     D -->|GitHub Pages| E["웹페이지"]
 ```
 
-매주 일요일 09:17(한국 시간)에는 GitHub Actions가 같은 과정을 자동으로 실행합니다.
+매주 일요일 07:43(한국 시간)에는 GitHub Actions가 같은 과정을 자동으로 실행합니다.
 
 ```mermaid
 flowchart LR
