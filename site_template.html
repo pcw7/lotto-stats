@@ -341,12 +341,19 @@
   .pair-list li strong { margin-left: auto; color: var(--ink); font-variant-numeric: tabular-nums; }
   .table-wrap.tall { max-height: 420px; overflow-y: auto; }
 
+  /* 3개·4개가 함께 나온 번호 */
+  .combo-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; margin-top: 12px; }
+  .combo-note { font-size: 13px; color: var(--ink-2); margin: -8px 0 8px; }
+  .table-wrap h3 { font-size: 14px; font-weight: 600; color: var(--ink-2); margin: 16px 0 4px; }
+  .table-wrap h3:first-child { margin-top: 0; }
+
 
   @media (max-width: 760px) {
     .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .prize { margin-left: 0; }
     .records { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .heat-layout { grid-template-columns: 1fr; }
+    .combo-layout { grid-template-columns: 1fr; }
   }
   @media (max-width: 520px) {
     h1 { font-size: 24px; }
@@ -534,6 +541,29 @@
       </div>
     </div>
     <div class="table-wrap tall" id="pair-table" hidden></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>3개·4개가 함께 나온 번호</h2>
+        <p class="sub" id="combo-sub"></p>
+      </div>
+      <button type="button" class="ghost" data-table="combo-table" aria-expanded="false">표로 보기</button>
+    </div>
+    <div class="combo-layout">
+      <div class="pair-lists">
+        <h3>3개가 가장 많이 함께 나온 조합</h3>
+        <ol class="pair-list" id="combo3-top"></ol>
+        <p class="combo-note" id="combo3-note"></p>
+      </div>
+      <div class="pair-lists">
+        <h3>4개가 가장 많이 함께 나온 조합</h3>
+        <ol class="pair-list" id="combo4-top"></ol>
+        <p class="combo-note" id="combo4-note"></p>
+      </div>
+    </div>
+    <div class="table-wrap" id="combo-table" hidden></div>
   </section>
   </div>
 </main>
@@ -1403,6 +1433,43 @@
     renderPairChart();
   }
 
+  // ------------------------------------------------------------ 3개·4개가 함께 나온 번호
+  // DATA.combos[k] = { combos: 조합 수, expected: 한 조합의 기대값, hist[j]: j회 나온 조합 수,
+  //                    theory[j]: 무작위라면 기대되는 조합 수 (마지막 칸은 그 횟수 이상), top: 많이 나온 조합 }
+  function renderCombos() {
+    const c3 = DATA.combos['3'];
+    const c4 = DATA.combos['4'];
+    $('combo-sub').textContent = '3개 또는 4개 번호가 같은 회차 당첨번호(보너스 제외)에 함께 나온 횟수입니다. ' +
+      `3개 조합은 ${fmt(c3.combos)}가지라 한 조합의 기대값이 약 ${c3.expected.toFixed(1)}회, ` +
+      `4개 조합은 ${fmt(c4.combos)}가지라 약 ${c4.expected.toFixed(2)}회입니다.`;
+    const expectedCount = (v) => (v < 0.1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : fmt(Math.round(v)));
+
+    const table = $('combo-table');
+    table.textContent = '';
+    for (const [k, d] of [[3, c3], [4, c4]]) {
+      const list = $(`combo${k}-top`);
+      list.textContent = '';
+      for (const { numbers, count } of d.top) {
+        const li = htmlEl('li', '', null, list);
+        for (const n of numbers) ball(n, li, true);
+        htmlEl('strong', '', `${count}회`, li);
+      }
+
+      // 목록에 못 넣은 조합 안내 + 가장 많이 나온 횟수가 무작위에서도 나올 만한지 비교
+      const most = d.hist.length - 1;
+      const last = d.top[d.top.length - 1].count;
+      const rest = d.hist[last] - d.top.filter((t) => t.count === last).length;
+      const restNote = rest > 0 ? `${last}회 나온 조합이 ${fmt(rest)}개 더 있습니다. `
+        : last > 1 ? `그다음으로 ${last - 1}회 나온 조합은 ${fmt(d.hist[last - 1])}개입니다. ` : '';
+      $(`combo${k}-note`).textContent = restNote +
+        `무작위 추첨에서도 ${most}회 이상 나오는 조합은 평균 ${expectedCount(d.theory[most])}개 생깁니다.`;
+
+      htmlEl('h3', '', `${k}개 조합 (${fmt(d.combos)}가지)`, table);
+      buildTable(htmlEl('div', '', null, table), ['함께 나온 횟수', '실제 조합 수', '무작위라면 (평균)'],
+        d.hist.map((h, j) => [j === most ? `${j}회 이상` : `${j}회`, `${fmt(h)}개`, `${expectedCount(d.theory[j])}개`]));
+    }
+  }
+
   // ------------------------------------------------------------ 번호 패턴 카드 (심화 분석 탭)
   // 숫자는 build_site.py가 DATA.patterns[key][i] = { actual, theory, total } 로 넘겨주고, 글자는 여기서 정한다.
   // charts[i]는 카드 안의 i번째 차트이고, unit은 실제 횟수 뒤에 붙는 단위(회차를 세면 '회', 번호를 세면 '개')다.
@@ -1535,6 +1602,7 @@
     renderCumulative();
     renderRecords();
     renderPairs();
+    renderCombos();
   }
 
   // ------------------------------------------------------------ 기간 선택

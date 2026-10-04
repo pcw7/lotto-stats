@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from analyze import (CHI2_CRITICAL, DATA_FILE, NUM_COLS, bonus_frequency, carryover_neighbors,
-                     chi_square, consecutive_pairs, cumulative, draws_since_last_seen, ending_kinds,
+                     chi_square, combo_counts, consecutive_pairs, cumulative, draws_since_last_seen, ending_kinds,
                      ending_share, low_high, number_frequency, odd_even_ratio, pair_counts,
                      range_share, records, sum_distribution, sum_theory, yearly_trend)
 
@@ -47,6 +47,13 @@ def pattern(result):
     }
 
 
+def combos(df, k):
+    """3개·4개 동반 출현 결과의 기대값을 줄인다."""
+    result = combo_counts(df, k)
+    return {**result, "expected": round(result["expected"], 4),
+            "theory": [round(x, 3) for x in result["theory"]]}
+
+
 def main():
     if not DATA_FILE.exists():
         raise SystemExit("data/lotto.csv가 없습니다. 먼저 collect.py를 실행해 주세요.")
@@ -78,6 +85,7 @@ def main():
         "cumulative": cumulative(df),
         "records": records(df),
         "pairs": pair_counts(df),  # (1,2), (1,3), ..., (44,45) 순서
+        "combos": {str(k): combos(df, k) for k in (3, 4)},  # 3개·4개가 함께 나온 횟수
         # 번호 패턴: 카드마다 차트 순서대로 [{actual, theory, total}, ...]
         "patterns": {
             "consecutive": [pattern(consecutive_pairs(df))],

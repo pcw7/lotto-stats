@@ -129,6 +129,38 @@ def pair_counts(df):
     return [counts[pair] for pair in combinations(NUMBERS, 2)]
 
 
+COMBO_TOP = 6  # 3개·4개 조합 목록에 보여 줄 최대 개수
+
+
+def combo_counts(df, k):
+    """k개(3 또는 4) 번호가 같은 회차 당첨번호(보너스 제외)에 함께 나온 횟수.
+    hist[j]: j회 나온 조합 수, theory[j]: 무작위 추첨이라면 기대되는 조합 수 (마지막 칸은 그 횟수 이상 전부),
+    top: 가장 많이 나온 조합. 같은 횟수끼리 묶어서 넣되 합쳐서 COMBO_TOP개를 넘지 않게 한다.
+    (첫 묶음부터 넘치면 번호 순으로 앞의 COMBO_TOP개)"""
+    counts = Counter()
+    for row in df[NUM_COLS].itertuples(index=False):
+        counts.update(combinations(sorted(row), k))
+    total, n = comb(45, k), len(df)
+    p = comb(45 - k, 6 - k) / comb(45, 6)  # 한 조합이 한 회차 당첨번호에 모두 들어갈 확률
+    most = max(counts.values())
+    hist = Counter(counts.values())
+    hist[0] = total - len(counts)
+    # 조합마다 나온 횟수는 이항분포 B(회차 수, p)를 따르므로 j회 나온 조합 수의 기대값은 조합 수 × P(X = j)
+    theory = [total * comb(n, j) * p ** j * (1 - p) ** (n - j) for j in range(most)]
+    theory.append(total - sum(theory))
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    top = []
+    for c in sorted(set(counts.values()), reverse=True):
+        group = [{"numbers": list(nums), "count": c} for nums, cnt in ranked if cnt == c]
+        if top and len(top) + len(group) > COMBO_TOP:
+            break
+        top += group[:COMBO_TOP]
+        if len(top) >= COMBO_TOP:
+            break
+    return {"combos": total, "expected": n * p, "hist": [hist[j] for j in range(most + 1)],
+            "theory": theory, "top": top}
+
+
 # ---------------------------------------------------------------- 번호 패턴 (실제 비율 vs 이론 확률)
 # 각 함수는 {"actual": 구간별 실제 비율, "theory": 구간별 이론 확률, "total": 비율의 분모} 를 돌려준다.
 
