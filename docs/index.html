@@ -354,7 +354,8 @@
   .pick-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 16px; }
   .pick-actions .check { gap: 6px; }
   .pick-option { display: inline-flex; align-items: center; gap: 6px; }
-  .pick-note { font-size: 13px; color: var(--ink-2); margin: 12px 0 0; min-height: 1.6em; }
+  .pick-note { font-size: 13px; color: var(--ink-2); margin: 12px 0 0; }
+  .pick-note:empty { display: none; }
   .pick-history-head { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
   .pick-history-head h3 { font-size: 14px; font-weight: 600; color: var(--ink-2); margin: 0; }
   .pick-history { list-style: none; padding: 0; margin: 8px 0 0; }
@@ -612,7 +613,8 @@
             <button type="button" class="help" id="pick-help">?</button>
           </span>
         </div>
-        <p class="pick-note" id="pick-note" aria-live="polite"></p>
+        <p class="pick-note" id="pick-note"></p>
+        <p class="sr-only" id="pick-live" aria-live="polite"></p>
       </div>
     </div>
     <div id="pick-history-wrap" hidden>
@@ -1792,6 +1794,7 @@
     tray.textContent = '';
     const slots = nums.map(() => htmlEl('span', 'pick-slot', null, tray));
     $('pick-note').textContent = '';
+    $('pick-live').textContent = '';
     // 손잡이가 돌고 구슬이 섞이는 동안 기다렸다가 하나씩 꺼낸다
     const start = reduceMotion ? 0 : 900;
     const step = reduceMotion ? 0 : 170;
@@ -1801,9 +1804,11 @@
       slots[i].replaceWith(b);
     }, start + step * i));
     setTimeout(() => {
+      // 번호는 공으로 보여주므로 화면에는 다시 뽑은 경우만 적고, 화면 낭독기에는 번호까지 읽어 준다
       const again = skipped.length
-        ? ` 많이 고르는 모양(${[...new Set(skipped)].join(', ')})이 나와서 ${skipped.length}번 다시 뽑았습니다.` : '';
-      $('pick-note').textContent = `뽑은 번호: ${nums.join(', ')}.${again}`;
+        ? `많이 고르는 모양(${[...new Set(skipped)].join(', ')})이 나와서 ${skipped.length}번 다시 뽑았습니다.` : '';
+      $('pick-note').textContent = again;
+      $('pick-live').textContent = `뽑은 번호: ${nums.join(', ')}. ${again}`;
       pickHistory.unshift(nums);
       pickHistory.length = Math.min(pickHistory.length, PICK_HISTORY_MAX);
       renderPickHistory();
