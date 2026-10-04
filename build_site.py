@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from analyze import (CHI2_CRITICAL, DATA_FILE, NUM_COLS, carryover_neighbors, chi_square,
-                     consecutive_pairs, draws_since_last_seen, ending_kinds, ending_share,
+                     consecutive_pairs, cumulative, draws_since_last_seen, ending_kinds, ending_share,
                      low_high, number_frequency, odd_even_ratio, pair_counts, range_share,
                      records, sum_distribution, sum_theory, yearly_trend)
 
@@ -74,6 +74,7 @@ def main():
         "gap": draws_since_last_seen(df).astype(int).tolist(),
         "windows": {key: summarize(df if n is None else df.tail(n)) for key, n in WINDOWS.items()},
         "yearly": yearly_trend(df),
+        "cumulative": cumulative(df),
         "records": records(df),
         "pairs": pair_counts(df),  # (1,2), (1,3), ..., (44,45) 순서
         # 번호 패턴: 카드마다 차트 순서대로 [{actual, theory, total}, ...]

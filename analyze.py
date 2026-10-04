@@ -225,6 +225,15 @@ def yearly_trend(df):
     return rows
 
 
+def cumulative(df):
+    """1회부터 더한 값: 총 판매액, 1등 당첨자 수, 1등 당첨금 총액(회차별 당첨자 수 × 1인당 당첨금)."""
+    return {
+        "sales": int(df["total_sales"].sum()),
+        "winners": int(df["first_winners"].sum()),
+        "payout": int((df["first_winners"] * df["first_prize"]).sum()),
+    }
+
+
 def records(df):
     """역대 기록: 1등 당첨금·당첨자 수·판매액의 최고/최저, 이월 횟수, 번호별 최장 미출현 구간."""
     won = df[df["first_winners"] > 0]

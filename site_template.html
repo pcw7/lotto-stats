@@ -484,6 +484,12 @@
   </section>
 
   <section class="card">
+    <h2>누적 기록</h2>
+    <p class="sub" id="cumulative-sub"></p>
+    <div class="records" id="cumulative"></div>
+  </section>
+
+  <section class="card">
     <h2>역대 기록</h2>
     <div class="records" id="records"></div>
   </section>
@@ -533,6 +539,12 @@
   // 2592525282 → "25억 9,253만 원" (만 원 단위에서 반올림)
   function won(amount) {
     const man = Math.round(amount / 10000);
+    if (man >= 1e8) {  // 1조 이상은 억 단위까지만 (예: 90조 2,012억 원)
+      const eokTotal = Math.round(man / 10000);
+      const jo = Math.floor(eokTotal / 10000);
+      const restEok = eokTotal % 10000;
+      return [`${fmt(jo)}조`, restEok && `${fmt(restEok)}억`].filter(Boolean).join(' ') + ' 원';
+    }
     const eok = Math.floor(man / 10000);
     const rest = man % 10000;
     return [eok && `${fmt(eok)}억`, rest && `${fmt(rest)}만`].filter(Boolean).join(' ') + ' 원';
@@ -1205,7 +1217,28 @@
     });
   }
 
-  // ------------------------------------------------------------ 역대 기록
+  // ------------------------------------------------------------ 누적 기록, 역대 기록
+  function fillRecords(box, items) {
+    box.textContent = '';
+    for (const [label, value, sub] of items) {
+      const item = htmlEl('div', 'record', null, box);
+      htmlEl('div', 'record-label', label, item);
+      htmlEl('div', 'record-value', value, item);
+      htmlEl('div', 'record-sub', sub, item);
+    }
+  }
+
+  function renderCumulative() {
+    const c = DATA.cumulative;
+    const draws = DATA.windows.all.draws;
+    $('cumulative-sub').textContent = `${DATA.first.no}~${DATA.last.no}회를 모두 더한 값입니다.`;
+    fillRecords($('cumulative'), [
+      ['총 판매액', won(c.sales), `회당 평균 ${fmt(Math.round(c.sales / draws / 1e8))}억 원`],
+      ['1등 당첨자 누적', `${fmt(c.winners)}명`, `회당 평균 ${(c.winners / draws).toFixed(1)}명`],
+      ['1등 1인당 평균 당첨금', won(c.payout / c.winners), `1등 당첨금 총액 ${won(c.payout)}`],
+    ]);
+  }
+
   function renderRecords() {
     const r = DATA.records;
     const when = (d) => `${d.no}회 · ${d.date}`;
@@ -1221,14 +1254,7 @@
       ['최장 미출현', `${d.number}번 · ${fmt(d.length)}회 연속`,
         `${d.from}~${d.to}회 동안 안 나옴${d.to === DATA.last.no ? ' (진행 중)' : ''}`],
     ];
-    const box = $('records');
-    box.textContent = '';
-    for (const [label, value, sub] of items) {
-      const item = htmlEl('div', 'record', null, box);
-      htmlEl('div', 'record-label', label, item);
-      htmlEl('div', 'record-value', value, item);
-      htmlEl('div', 'record-sub', sub, item);
-    }
+    fillRecords($('records'), items);
   }
 
   // ------------------------------------------------------------ 같이 잘 나오는 번호
@@ -1450,6 +1476,7 @@
       years.map((d) => [`${d.year}년`, `${d.draws}회`, ...TREND_METRICS.map((mt) => mt.value(d[mt.key]))]));
     renderPatternCards();
     renderTrend();
+    renderCumulative();
     renderRecords();
     renderPairs();
   }
