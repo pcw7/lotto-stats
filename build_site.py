@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from analyze import (CHI2_CRITICAL, DATA_FILE, NUM_COLS, carryover_neighbors, chi_square,
-                     consecutive_pairs, cumulative, draws_since_last_seen, ending_kinds, ending_share,
-                     low_high, number_frequency, odd_even_ratio, pair_counts, range_share,
-                     records, sum_distribution, sum_theory, yearly_trend)
+from analyze import (CHI2_CRITICAL, DATA_FILE, NUM_COLS, bonus_frequency, carryover_neighbors,
+                     chi_square, consecutive_pairs, cumulative, draws_since_last_seen, ending_kinds,
+                     ending_share, low_high, number_frequency, odd_even_ratio, pair_counts,
+                     range_share, records, sum_distribution, sum_theory, yearly_trend)
 
 BASE_DIR = Path(__file__).parent
 TEMPLATE_FILE = BASE_DIR / "site_template.html"
@@ -22,13 +22,14 @@ WINDOWS = {"all": None, "100": 100, "52": 52}  # 최근 N회 (None은 전체, 52
 
 
 def summarize(df):
-    """한 기간의 번호별 빈도, 홀짝 비율, 카이제곱 값."""
+    """한 기간의 번호별 빈도(당첨번호, 보너스), 홀짝 비율, 카이제곱 값."""
     freq = number_frequency(df)
     actual, _ = odd_even_ratio(df)
     ranges, _ = range_share(df)
     return {
         "draws": len(df),
         "freq": freq.tolist(),
+        "bonusFreq": bonus_frequency(df).tolist(),  # 보너스 번호로 나온 횟수 (번호 1~45)
         "oddEven": [round(x, 6) for x in actual],
         "chi2": round(float(chi_square(freq)), 1),
         "sumDist": [round(x, 6) for x in sum_distribution(df)],

@@ -61,6 +61,11 @@ def number_frequency(df):
     return df[NUM_COLS].stack().value_counts().reindex(NUMBERS, fill_value=0)
 
 
+def bonus_frequency(df):
+    """1~45 각 번호가 보너스 번호로 나온 횟수."""
+    return df["bonus"].value_counts().reindex(NUMBERS, fill_value=0)
+
+
 def chi_square(freq):
     """모든 번호가 똑같이 나온다고 가정했을 때와의 차이(카이제곱 통계량)."""
     expected = freq.sum() / len(freq)
