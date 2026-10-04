@@ -239,6 +239,74 @@ def carryover_neighbors(df):
     )
 
 
+# ---------------------------------------------------------------- 1등 당첨금을 나눠 가진 정도 (번호 뽑기 탭)
+
+PRICE_CHANGE_DRAW = 88  # 88회(2004-08-07 추첨)부터 1게임 1,000원. 그전에는 2,000원
+
+
+def expected_first_winners(df):
+    """판매된 게임이 모두 무작위 번호였다면 기대되는 회차별 1등 당첨자 수 (판매 게임 수 ÷ 8,145,060)."""
+    price = df["draw_no"].map(lambda no: 2000 if no < PRICE_CHANGE_DRAW else 1000)
+    return df["total_sales"] / price / comb(45, 6)
+
+
+# 사람들이 많이 고르는 번호 모양. 번호 뽑기에서 이 모양이 나오면 다시 뽑는다.
+# (판정 기준은 site_template.html의 POPULAR_SHAPES와 같아야 한다. nums는 오름차순)
+def is_small_heavy(nums):
+    """12 이하 번호가 4개 이상"""
+    return sum(n <= 12 for n in nums) >= 4
+
+
+def is_consecutive_heavy(nums):
+    """연속 번호 쌍이 3개 이상"""
+    return sum(b - a == 1 for a, b in zip(nums, nums[1:])) >= 3
+
+
+POPULAR_SHAPES = {"small": is_small_heavy, "consecutive": is_consecutive_heavy}
+
+
+def popular_shape_shares():
+    """1~45에서 6개를 무작위로 고를 때 각 모양이 나올 확률과, 둘 중 하나라도 해당할 확률."""
+    total = comb(45, 6)
+    small = sum(comb(12, k) * comb(33, 6 - k) for k in range(4, 7))
+    consecutive = sum(comb(5, s) * comb(40, 6 - s) for s in range(3, 6))
+    # 두 모양이 겹치는 조합은 12 이하 번호가 4개 이상인 조합(288,420개)을 모두 세어 구한다
+    both = sum(is_consecutive_heavy(low + high)
+               for k in range(4, 7)
+               for low in combinations(range(1, 13), k)
+               for high in combinations(range(13, 46), 6 - k))
+    return {"small": small / total, "consecutive": consecutive / total,
+            "either": (small + consecutive - both) / total}
+
+
+def shared_winners(df):
+    """번호 모양별로 1등 당첨자가 무작위 기대의 몇 배였는지 (실제 당첨자 수 ÷ 기대 당첨자 수).
+    1배보다 크면 그 번호를 고른 사람이 많아서 1등 당첨금을 더 많이 나눠 가졌다는 뜻이다."""
+    expected = expected_first_winners(df)
+    winners = df["first_winners"]
+    rows = [sorted(r) for r in df[NUM_COLS].to_numpy().tolist()]
+
+    def ratio(mask):
+        return float(winners[mask].sum() / expected[mask].sum())
+
+    shares = popular_shape_shares()
+    shapes = {}
+    for key, test in POPULAR_SHAPES.items():
+        mask = pd.Series([test(r) for r in rows], index=df.index)
+        shapes[key] = {"draws": int(mask.sum()), "ratio": ratio(mask), "share": shares[key]}
+
+    per_draw = winners / expected
+    top = df.loc[per_draw.idxmax()]
+    return {
+        "overall": ratio(pd.Series(True, index=df.index)),
+        "shapes": shapes,
+        "rejectShare": shares["either"],
+        "top": {"no": int(top.draw_no), "numbers": [int(top[c]) for c in NUM_COLS],
+                "winners": int(top.first_winners), "expected": float(expected[top.name]),
+                "ratio": float(per_draw.max())},
+    }
+
+
 def draws_since_last_seen(df):
     """번호별로 마지막으로 나온 뒤 몇 회차째 안 나오고 있는지."""
     long = df.melt(id_vars="draw_no", value_vars=NUM_COLS, value_name="number")

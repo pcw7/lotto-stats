@@ -11,9 +11,10 @@ from pathlib import Path
 import pandas as pd
 
 from analyze import (CHI2_CRITICAL, DATA_FILE, NUM_COLS, bonus_frequency, carryover_neighbors,
-                     chi_square, combo_counts, consecutive_pairs, cumulative, draws_since_last_seen, ending_kinds,
-                     ending_share, low_high, number_frequency, odd_even_ratio, pair_counts,
-                     range_share, records, sum_distribution, sum_theory, yearly_trend)
+                     chi_square, combo_counts, consecutive_pairs, cumulative, draws_since_last_seen,
+                     ending_kinds, ending_share, low_high, number_frequency, odd_even_ratio,
+                     pair_counts, range_share, records, shared_winners, sum_distribution,
+                     sum_theory, yearly_trend)
 
 BASE_DIR = Path(__file__).parent
 TEMPLATE_FILE = BASE_DIR / "site_template.html"
@@ -54,6 +55,19 @@ def combos(df, k):
             "theory": [round(x, 3) for x in result["theory"]]}
 
 
+def shared(df):
+    """1등 당첨금을 나눠 가진 정도(번호 뽑기 탭)의 배수와 비율을 줄인다."""
+    result = shared_winners(df)
+    return {
+        "overall": round(result["overall"], 4),
+        "shapes": {key: {**v, "ratio": round(v["ratio"], 4), "share": round(v["share"], 6)}
+                   for key, v in result["shapes"].items()},
+        "rejectShare": round(result["rejectShare"], 6),
+        "top": {**result["top"], "expected": round(result["top"]["expected"], 2),
+                "ratio": round(result["top"]["ratio"], 4)},
+    }
+
+
 def main():
     if not DATA_FILE.exists():
         raise SystemExit("data/lotto.csv가 없습니다. 먼저 collect.py를 실행해 주세요.")
@@ -86,6 +100,7 @@ def main():
         "records": records(df),
         "pairs": pair_counts(df),  # (1,2), (1,3), ..., (44,45) 순서
         "combos": {str(k): combos(df, k) for k in (3, 4)},  # 3개·4개가 함께 나온 횟수
+        "shared": shared(df),  # 번호 모양별로 1등 당첨금을 나눠 가진 정도 (번호 뽑기 탭)
         # 번호 패턴: 카드마다 차트 순서대로 [{actual, theory, total}, ...]
         "patterns": {
             "consecutive": [pattern(consecutive_pairs(df))],

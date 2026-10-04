@@ -306,7 +306,7 @@
   .tabs button:hover { color: var(--ink-2); }
   .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
   .tabs button:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; border-radius: 6px; }
-  .panel { padding-top: 16px; }
+  .panel { padding-top: 16px; scroll-margin-top: 56px; }  /* 고정된 탭 바 아래로 스크롤 */
   .panel-note { color: var(--ink-2); font-size: 14px; margin: 0 0 12px; }
 
   /* 연도별 추이: 같은 가로축(연도)을 쓰는 작은 차트 3개 */
@@ -342,6 +342,28 @@
   .pair-list li strong { margin-left: auto; color: var(--ink); font-variant-numeric: tabular-nums; }
   .table-wrap.tall { max-height: 420px; overflow-y: auto; }
 
+  /* 번호 뽑기 */
+  .pick-stage { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; margin-top: 16px; }
+  .machine.big { width: 150px; height: 133px; }
+  .pick-main { flex: 1; min-width: 0; }
+  .pick-tray { display: flex; flex-wrap: wrap; gap: 8px; min-height: 46px; }
+  .pick-slot { width: 46px; height: 46px; border-radius: 50%; border: 2px dashed var(--baseline); }
+  .ball.lg { width: 46px; height: 46px; font-size: 18px; }
+  .ball.pop { animation: ball-pop 0.28s ease-out both; }
+  @keyframes ball-pop { from { opacity: 0; transform: translateY(-14px) scale(0.6); } to { opacity: 1; transform: none; } }
+  .pick-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 16px; }
+  .pick-actions .check { gap: 6px; }
+  .pick-option { display: inline-flex; align-items: center; gap: 6px; }
+  .pick-note { font-size: 13px; color: var(--ink-2); margin: 12px 0 0; min-height: 1.6em; }
+  .pick-history-head { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+  .pick-history-head h3 { font-size: 14px; font-weight: 600; color: var(--ink-2); margin: 0; }
+  .pick-history { list-style: none; padding: 0; margin: 8px 0 0; }
+  .pick-history li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--grid); }
+  .pick-history li:last-child { border-bottom: 0; }
+  .records + .sub { margin-top: 12px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  @media (prefers-reduced-motion: reduce) { .ball.pop { animation: none; } }
+
   /* 3개·4개가 함께 나온 번호 */
   .combo-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; margin-top: 12px; }
   .combo-note { font-size: 13px; color: var(--ink-2); margin: -8px 0 8px; }
@@ -359,6 +381,11 @@
   @media (max-width: 520px) {
     h1 { font-size: 24px; }
     .machine { width: 52px; height: 46px; }
+    .machine.big { width: 112px; height: 100px; }
+    .pick-stage { flex-direction: column; align-items: flex-start; }  /* 추첨기 아래에 결과를 넓게 */
+    .pick-main { width: 100%; }
+    .ball.lg { width: 42px; height: 42px; font-size: 16px; }
+    .pick-slot { width: 42px; height: 42px; }
     .title-row { gap: 10px; }
     .card { padding: 16px; }
     .tile { padding: 14px; }
@@ -371,7 +398,7 @@
 <main class="wrap">
   <header>
     <div class="title-row">
-      <button type="button" class="machine" id="machine" aria-label="추첨기 애니메이션 다시 보기">
+      <button type="button" class="machine" id="machine" aria-label="번호 뽑기">
         <svg viewBox="0 0 72 64" aria-hidden="true">
           <line class="m-ground" x1="6" y1="60.5" x2="70" y2="60.5"/>
           <rect class="m-base" x="14" y="37" width="32" height="23" rx="4"/>
@@ -404,6 +431,7 @@
   <div class="tabs" role="tablist" aria-label="보기 선택">
     <button type="button" role="tab" id="tab-stats" data-tab="stats" aria-controls="panel-stats">번호 통계</button>
     <button type="button" role="tab" id="tab-more" data-tab="more" aria-controls="panel-more">심화 분석</button>
+    <button type="button" role="tab" id="tab-pick" data-tab="pick" aria-controls="panel-pick">번호 뽑기</button>
   </div>
 
   <!-- 탭 1: 번호 통계 (기간 선택이 이 탭 안에만 적용된다) -->
@@ -567,12 +595,48 @@
     <div class="table-wrap" id="combo-table" hidden></div>
   </section>
   </div>
+
+  <!-- 탭 3: 번호 뽑기 (가챠 추첨기로 무작위 번호 6개) -->
+  <div class="panel" id="panel-pick" role="tabpanel" aria-labelledby="tab-pick" hidden>
+  <section class="card">
+    <h2>번호 뽑기</h2>
+    <p class="sub">추첨기를 누르면 1~45에서 번호 6개를 무작위로 뽑습니다. 어떤 번호를 고르든 1등 확률은 8,145,060분의 1로 똑같습니다.</p>
+    <div class="pick-stage">
+      <button type="button" class="machine big" id="pick-machine" aria-label="번호 뽑기"></button>
+      <div class="pick-main">
+        <div class="pick-tray" id="pick-tray" aria-hidden="true"></div>
+        <div class="pick-actions">
+          <button type="button" class="primary" id="pick-btn">번호 뽑기</button>
+          <span class="pick-option">
+            <label class="check"><input type="checkbox" id="pick-avoid" checked autocomplete="off">많이 고르는 모양 피하기</label>
+            <button type="button" class="help" id="pick-help">?</button>
+          </span>
+        </div>
+        <p class="pick-note" id="pick-note" aria-live="polite"></p>
+      </div>
+    </div>
+    <div id="pick-history-wrap" hidden>
+      <div class="pick-history-head">
+        <h3>뽑은 번호 (최근 5게임)</h3>
+        <button type="button" class="ghost" id="pick-clear">지우기</button>
+      </div>
+      <ol class="pick-history" id="pick-history"></ol>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>많이 고르는 번호는 당첨금을 더 나눠 가져요</h2>
+    <p class="sub" id="shared-sub"></p>
+    <div class="records" id="shared"></div>
+    <p class="sub" id="shared-note"></p>
+  </section>
+  </div>
 </main>
 
 <div class="tip" id="tip" role="tooltip" hidden></div>
 <div class="help-pop" id="help-pop" role="tooltip" hidden></div>
 
-<script id="data" type="application/json">{"first": {"no": 1, "date": "2002-12-07"}, "last": {"no": 1244, "date": "2026-10-03", "numbers": [1, 13, 18, 26, 34, 38], "bonus": 25, "firstWinners": 18, "firstPrize": 1604686625}, "chi2Critical": 60.48, "oddEvenTheory": [0.009161, 0.074362, 0.227217, 0.334846, 0.251134, 0.090887, 0.012394], "sumTheory": [0.003532, 0.023122, 0.081617, 0.175807, 0.248332, 0.236471, 0.15126, 0.062639, 0.015363, 0.001856], "rangeTheory": [0.222222, 0.222222, 0.222222, 0.222222, 0.111111], "gap": [0, 2, 14, 2, 31, 9, 3, 14, 1, 2, 4, 8, 0, 13, 9, 2, 18, 0, 4, 4, 8, 5, 3, 1, 11, 0, 20, 14, 8, 16, 2, 5, 5, 0, 10, 5, 7, 0, 9, 7, 2, 6, 1, 1, 20], "windows": {"all": {"draws": 1244, "freq": [171, 157, 172, 163, 153, 166, 171, 158, 137, 163, 168, 180, 184, 172, 170, 170, 171, 180, 171, 172, 167, 146, 149, 168, 153, 166, 181, 157, 156, 158, 171, 146, 175, 187, 163, 165, 174, 174, 168, 174, 151, 158, 167, 166, 175], "bonusFreq": [33, 36, 32, 35, 25, 34, 32, 25, 28, 29, 26, 27, 28, 23, 26, 30, 33, 19, 22, 30, 25, 21, 21, 33, 24, 32, 33, 26, 18, 32, 32, 34, 32, 24, 31, 25, 26, 30, 25, 22, 19, 25, 35, 24, 22], "oddEven": [0.013666, 0.06672, 0.226688, 0.332797, 0.265273, 0.079582, 0.015273], "chi2": 30.1, "sumDist": [0.004019, 0.025723, 0.087621, 0.163987, 0.254823, 0.21463, 0.163987, 0.065113, 0.017685, 0.002412], "sumMean": 138.3, "rangeShare": [0.215836, 0.232851, 0.214496, 0.227358, 0.109459]}, "100": {"draws": 100, "freq": [13, 12, 16, 11, 9, 14, 15, 14, 16, 10, 13, 12, 19, 7, 17, 17, 11, 15, 14, 13, 10, 11, 13, 16, 13, 12, 20, 15, 13, 12, 17, 13, 11, 10, 13, 13, 16, 19, 15, 12, 11, 13, 10, 13, 11], "bonusFreq": [1, 4, 3, 1, 2, 1, 4, 2, 4, 2, 2, 0, 2, 2, 1, 3, 3, 0, 2, 3, 3, 4, 1, 3, 6, 1, 4, 4, 3, 1, 5, 3, 2, 1, 2, 1, 3, 2, 1, 0, 2, 2, 0, 0, 4], "oddEven": [0.02, 0.07, 0.23, 0.21, 0.36, 0.1, 0.01], "chi2": 25.2, "sumDist": [0.01, 0.02, 0.09, 0.13, 0.25, 0.33, 0.11, 0.03, 0.03, 0.0], "sumMean": 137.7, "rangeShare": [0.216667, 0.23, 0.225, 0.231667, 0.096667]}, "52": {"draws": 52, "freq": [9, 7, 7, 6, 4, 6, 6, 6, 7, 6, 5, 5, 11, 3, 11, 9, 5, 9, 7, 7, 4, 6, 5, 10, 6, 6, 10, 9, 6, 7, 11, 7, 7, 7, 6, 7, 6, 11, 6, 5, 7, 7, 6, 8, 6], "bonusFreq": [1, 3, 1, 0, 0, 0, 2, 1, 3, 2, 1, 0, 1, 2, 1, 2, 1, 0, 0, 1, 1, 1, 1, 2, 4, 1, 3, 1, 1, 1, 2, 0, 1, 1, 1, 1, 2, 0, 1, 0, 2, 0, 0, 0, 3], "oddEven": [0.0, 0.096154, 0.288462, 0.211538, 0.307692, 0.076923, 0.019231], "chi2": 24.1, "sumDist": [0.0, 0.019231, 0.057692, 0.153846, 0.25, 0.326923, 0.115385, 0.057692, 0.019231, 0.0], "sumMean": 140.0, "rangeShare": [0.205128, 0.230769, 0.221154, 0.233974, 0.108974]}}, "yearly": [{"year": 2002, "draws": 4, "winners": 0.5, "prize": 2001003400, "sales": 4646715500}, {"year": 2003, "draws": 52, "winners": 4.02, "prize": 7296607950, "sales": 73136611576}, {"year": 2004, "draws": 52, "winners": 4.85, "prize": 4449644243, "sales": 63082585134}, {"year": 2005, "draws": 53, "winners": 6.43, "prize": 2337672556, "sales": 51924867188}, {"year": 2006, "draws": 52, "winners": 5.81, "prize": 2477798749, "sales": 47529296634}, {"year": 2007, "draws": 52, "winners": 5.81, "prize": 2398778454, "sales": 43550423250}, {"year": 2008, "draws": 52, "winners": 5.48, "prize": 2628893655, "sales": 43615730826}, {"year": 2009, "draws": 52, "winners": 5.67, "prize": 2411724960, "sales": 45181136769}, {"year": 2010, "draws": 52, "winners": 5.6, "prize": 2932931827, "sales": 46551576519}, {"year": 2011, "draws": 53, "winners": 6.91, "prize": 2300512047, "sales": 53056016584}, {"year": 2012, "draws": 52, "winners": 6.65, "prize": 2490390423, "sales": 54483828769}, {"year": 2013, "draws": 52, "winners": 7.75, "prize": 2660993899, "sales": 57343982115}, {"year": 2014, "draws": 52, "winners": 7.52, "prize": 2290456497, "sales": 58482017750}, {"year": 2015, "draws": 52, "winners": 7.56, "prize": 2325697848, "sales": 62419556769}, {"year": 2016, "draws": 53, "winners": 8.64, "prize": 2214066163, "sales": 67916671150}, {"year": 2017, "draws": 52, "winners": 9.19, "prize": 2354143504, "sales": 72976702076}, {"year": 2018, "draws": 52, "winners": 9.31, "prize": 2328038408, "sales": 76165627442}, {"year": 2019, "draws": 52, "winners": 9.75, "prize": 2396548868, "sales": 82849318865}, {"year": 2020, "draws": 52, "winners": 10.1, "prize": 2461556915, "sales": 90558172692}, {"year": 2021, "draws": 52, "winners": 10.85, "prize": 2455187227, "sales": 98361471576}, {"year": 2022, "draws": 53, "winners": 12.6, "prize": 2554471515, "sales": 104105883018}, {"year": 2023, "draws": 52, "winners": 12.42, "prize": 2368756091, "sales": 108626514942}, {"year": 2024, "draws": 52, "winners": 14.67, "prize": 2100664332, "sales": 114020230480}, {"year": 2025, "draws": 52, "winners": 15.62, "prize": 2061324936, "sales": 119233559461}, {"year": 2026, "draws": 40, "winners": 15.1, "prize": 2171414849, "sales": 121916714550}], "cumulative": {"sales": 90201191525000, "winners": 10687, "payout": 21493319914765}, "records": {"topPrize": {"no": 19, "date": "2003-04-12", "winners": 1, "prize": 40722959400, "sales": 105957818000}, "lowPrize": {"no": 546, "date": "2013-05-18", "winners": 30, "prize": 405939950, "sales": 56713166000}, "mostWinners": {"no": 1128, "date": "2024-07-13", "winners": 63, "prize": 419925560, "sales": 111364194000}, "topSales": {"no": 10, "date": "2003-02-08", "winners": 13, "prize": 6430437900, "sales": 260856392000}, "noWinner": {"count": 14, "last": {"no": 463, "date": "2011-10-15", "winners": 0, "prize": 0, "sales": 49205151000}}, "drought": {"number": 5, "length": 73, "from": 1053, "to": 1125}}, "pairs": [24, 27, 21, 18, 16, 14, 21, 21, 21, 18, 25, 23, 17, 18, 23, 22, 21, 16, 22, 19, 9, 20, 20, 13, 22, 22, 30, 22, 12, 13, 14, 14, 25, 23, 16, 19, 19, 17, 20, 21, 24, 18, 15, 20, 16, 20, 15, 20, 15, 22, 12, 13, 22, 18, 18, 15, 23, 23, 22, 14, 22, 21, 13, 18, 11, 17, 24, 16, 20, 22, 16, 16, 18, 16, 23, 22, 11, 13, 19, 14, 19, 14, 15, 18, 17, 18, 20, 22, 12, 17, 21, 20, 17, 22, 21, 25, 29, 21, 21, 18, 18, 16, 16, 29, 12, 25, 19, 29, 9, 14, 28, 13, 14, 18, 19, 23, 20, 20, 18, 19, 21, 20, 17, 16, 17, 23, 19, 18, 21, 18, 15, 13, 19, 18, 23, 19, 19, 17, 18, 18, 23, 22, 20, 18, 26, 11, 16, 19, 15, 19, 25, 22, 18, 18, 9, 19, 20, 26, 19, 14, 12, 22, 16, 15, 24, 19, 17, 18, 12, 21, 20, 16, 13, 16, 11, 26, 24, 24, 24, 13, 15, 18, 20, 13, 26, 19, 18, 14, 13, 18, 21, 24, 14, 17, 17, 16, 16, 12, 26, 15, 12, 17, 12, 20, 12, 14, 19, 20, 17, 20, 24, 12, 12, 18, 25, 22, 24, 22, 18, 22, 25, 24, 23, 16, 23, 22, 10, 18, 14, 16, 16, 28, 10, 19, 19, 20, 9, 19, 17, 17, 25, 31, 22, 23, 18, 14, 18, 15, 12, 15, 22, 15, 20, 24, 20, 12, 24, 22, 18, 27, 26, 24, 13, 23, 18, 27, 17, 21, 20, 16, 23, 15, 14, 10, 25, 18, 18, 24, 21, 25, 20, 23, 18, 20, 18, 18, 18, 11, 13, 14, 7, 23, 17, 18, 15, 24, 23, 23, 14, 23, 13, 15, 14, 18, 8, 27, 17, 20, 19, 23, 16, 22, 17, 18, 22, 16, 20, 27, 14, 15, 18, 20, 20, 24, 16, 15, 22, 14, 13, 14, 14, 17, 18, 14, 10, 16, 12, 14, 18, 16, 15, 18, 19, 16, 15, 12, 11, 21, 15, 18, 15, 17, 19, 16, 15, 15, 14, 15, 14, 13, 17, 16, 19, 22, 20, 27, 13, 22, 23, 20, 12, 24, 16, 20, 15, 11, 19, 18, 19, 13, 31, 18, 20, 18, 22, 20, 22, 23, 14, 26, 18, 16, 15, 22, 12, 19, 22, 21, 21, 20, 26, 20, 16, 16, 34, 15, 13, 19, 14, 24, 19, 21, 17, 15, 19, 20, 17, 10, 19, 20, 22, 17, 26, 9, 18, 13, 16, 27, 18, 21, 20, 28, 14, 15, 20, 23, 22, 19, 14, 17, 31, 16, 25, 17, 16, 24, 17, 18, 21, 25, 29, 15, 17, 16, 21, 23, 24, 22, 27, 23, 17, 22, 21, 20, 17, 18, 28, 19, 24, 20, 16, 15, 20, 20, 21, 16, 26, 23, 13, 22, 24, 29, 23, 16, 21, 25, 25, 23, 20, 18, 19, 22, 18, 24, 29, 18, 16, 23, 17, 18, 22, 22, 19, 14, 18, 24, 23, 16, 14, 23, 22, 20, 21, 18, 20, 22, 22, 21, 23, 24, 14, 17, 17, 19, 21, 16, 18, 12, 26, 19, 24, 22, 23, 23, 21, 19, 18, 18, 15, 16, 14, 12, 17, 29, 17, 18, 20, 13, 17, 19, 18, 19, 24, 18, 20, 18, 17, 24, 20, 17, 10, 23, 25, 23, 18, 18, 20, 20, 15, 24, 13, 19, 18, 16, 24, 19, 21, 18, 21, 25, 17, 22, 21, 17, 24, 21, 22, 19, 15, 17, 18, 16, 19, 24, 20, 18, 21, 22, 17, 19, 21, 21, 24, 18, 16, 23, 17, 13, 15, 19, 21, 25, 16, 21, 25, 14, 24, 20, 13, 24, 19, 16, 19, 23, 28, 25, 15, 27, 18, 14, 19, 27, 24, 17, 12, 23, 21, 20, 27, 18, 29, 16, 20, 20, 23, 19, 20, 21, 10, 16, 18, 18, 17, 25, 17, 16, 13, 16, 17, 18, 20, 23, 24, 18, 27, 14, 14, 21, 22, 18, 20, 18, 18, 15, 19, 19, 17, 26, 18, 26, 20, 18, 15, 16, 20, 20, 17, 18, 26, 17, 17, 12, 14, 23, 23, 22, 11, 17, 20, 17, 20, 19, 28, 22, 23, 21, 17, 19, 15, 18, 13, 18, 23, 19, 12, 18, 17, 16, 15, 19, 12, 13, 19, 17, 15, 22, 15, 21, 23, 21, 13, 17, 12, 17, 13, 17, 11, 18, 18, 15, 16, 17, 18, 14, 16, 11, 11, 21, 21, 17, 16, 18, 18, 19, 9, 17, 22, 21, 20, 13, 13, 29, 10, 17, 22, 15, 19, 21, 19, 21, 19, 19, 19, 18, 21, 16, 18, 10, 26, 22, 15, 18, 18, 21, 11, 18, 14, 22, 19, 17, 27, 22, 18, 15, 18, 12, 12, 18, 17, 17, 26, 19, 19, 18, 21, 8, 19, 21, 20, 23, 19, 21, 16, 22, 17, 20, 24, 18, 15, 19, 23, 18, 17, 13, 17, 16, 27, 24, 23, 26, 20, 26, 16, 21, 21, 19, 25, 13, 23, 12, 12, 11, 23, 11, 18, 16, 17, 17, 20, 16, 22, 21, 14, 19, 11, 19, 13, 25, 24, 17, 14, 16, 23, 18, 22, 11, 17, 18, 24, 18, 23, 14, 24, 28, 22, 16, 20, 23, 23, 15, 23, 15, 23, 17, 23, 24, 19, 27, 17, 17, 21, 25, 15, 25, 18, 14, 23, 26, 17, 23, 18, 12, 18, 16, 15, 14, 19, 14, 19, 12, 13, 21, 18, 22, 23, 24, 21, 16, 33, 19, 19, 14, 22, 21, 20, 18, 16, 20, 20, 20, 21, 30, 19, 27, 23, 19, 24, 18, 20, 23, 11, 14, 25, 19, 19, 20, 17, 25, 15, 17, 16, 13, 18, 21, 24, 20, 31, 19, 15, 21, 10, 23, 21, 23, 15, 16, 19, 19, 23, 16, 22, 12, 22, 20, 23, 22, 15, 21, 19, 17, 17, 18, 20, 22, 19, 15, 24, 18, 19, 14], "combos": {"3": {"combos": 14190, "expected": 1.7533, "hist": [2392, 4358, 3787, 2254, 974, 300, 91, 28, 6], "theory": [2454.574, 4309.796, 3780.576, 2209.116, 967.365, 338.612, 98.692, 24.636, 6.634], "top": [{"numbers": [1, 3, 27], "count": 8}, {"numbers": [3, 8, 27], "count": 8}, {"numbers": [3, 20, 44], "count": 8}, {"numbers": [12, 15, 24], "count": 8}, {"numbers": [12, 34, 42], "count": 8}, {"numbers": [33, 37, 40], "count": 8}]}, "4": {"combos": 148995, "expected": 0.1252, "hist": [131399, 16571, 987, 37, 1], "theory": [131455.362, 16465.009, 1030.306, 42.947, 1.376], "top": [{"numbers": [3, 13, 33, 37], "count": 4}]}}, "patterns": {"consecutive": [{"actual": [0.483119, 0.392283, 0.107717, 0.016881], "theory": [0.471253, 0.403931, 0.112203, 0.012614], "total": 1244}], "lowHigh": [{"actual": [0.013666, 0.090836, 0.25, 0.330386, 0.226688, 0.075563, 0.012862], "theory": [0.012394, 0.090887, 0.251134, 0.334846, 0.227217, 0.074362, 0.009161], "total": 1244}], "ending": [{"actual": [0.089362, 0.110932, 0.105439, 0.113478, 0.114684, 0.109057, 0.089362, 0.093382, 0.08963, 0.084673], "theory": [0.088889, 0.111111, 0.111111, 0.111111, 0.111111, 0.111111, 0.088889, 0.088889, 0.088889, 0.088889], "total": 7464}, {"actual": [0.039389, 0.262862, 0.4791, 0.21865], "theory": [0.032398, 0.260821, 0.497072, 0.20971], "total": 1244}], "carry": [{"actual": [0.386163, 0.42317, 0.169751, 0.020917], "theory": [0.400565, 0.424127, 0.151474, 0.023834], "total": 1243}, {"actual": [0.224457, 0.400644, 0.271118, 0.103781], "theory": [0.212612, 0.396013, 0.279356, 0.112019], "total": 1243}]}}</script>
+<script id="data" type="application/json">{"first": {"no": 1, "date": "2002-12-07"}, "last": {"no": 1244, "date": "2026-10-03", "numbers": [1, 13, 18, 26, 34, 38], "bonus": 25, "firstWinners": 18, "firstPrize": 1604686625}, "chi2Critical": 60.48, "oddEvenTheory": [0.009161, 0.074362, 0.227217, 0.334846, 0.251134, 0.090887, 0.012394], "sumTheory": [0.003532, 0.023122, 0.081617, 0.175807, 0.248332, 0.236471, 0.15126, 0.062639, 0.015363, 0.001856], "rangeTheory": [0.222222, 0.222222, 0.222222, 0.222222, 0.111111], "gap": [0, 2, 14, 2, 31, 9, 3, 14, 1, 2, 4, 8, 0, 13, 9, 2, 18, 0, 4, 4, 8, 5, 3, 1, 11, 0, 20, 14, 8, 16, 2, 5, 5, 0, 10, 5, 7, 0, 9, 7, 2, 6, 1, 1, 20], "windows": {"all": {"draws": 1244, "freq": [171, 157, 172, 163, 153, 166, 171, 158, 137, 163, 168, 180, 184, 172, 170, 170, 171, 180, 171, 172, 167, 146, 149, 168, 153, 166, 181, 157, 156, 158, 171, 146, 175, 187, 163, 165, 174, 174, 168, 174, 151, 158, 167, 166, 175], "bonusFreq": [33, 36, 32, 35, 25, 34, 32, 25, 28, 29, 26, 27, 28, 23, 26, 30, 33, 19, 22, 30, 25, 21, 21, 33, 24, 32, 33, 26, 18, 32, 32, 34, 32, 24, 31, 25, 26, 30, 25, 22, 19, 25, 35, 24, 22], "oddEven": [0.013666, 0.06672, 0.226688, 0.332797, 0.265273, 0.079582, 0.015273], "chi2": 30.1, "sumDist": [0.004019, 0.025723, 0.087621, 0.163987, 0.254823, 0.21463, 0.163987, 0.065113, 0.017685, 0.002412], "sumMean": 138.3, "rangeShare": [0.215836, 0.232851, 0.214496, 0.227358, 0.109459]}, "100": {"draws": 100, "freq": [13, 12, 16, 11, 9, 14, 15, 14, 16, 10, 13, 12, 19, 7, 17, 17, 11, 15, 14, 13, 10, 11, 13, 16, 13, 12, 20, 15, 13, 12, 17, 13, 11, 10, 13, 13, 16, 19, 15, 12, 11, 13, 10, 13, 11], "bonusFreq": [1, 4, 3, 1, 2, 1, 4, 2, 4, 2, 2, 0, 2, 2, 1, 3, 3, 0, 2, 3, 3, 4, 1, 3, 6, 1, 4, 4, 3, 1, 5, 3, 2, 1, 2, 1, 3, 2, 1, 0, 2, 2, 0, 0, 4], "oddEven": [0.02, 0.07, 0.23, 0.21, 0.36, 0.1, 0.01], "chi2": 25.2, "sumDist": [0.01, 0.02, 0.09, 0.13, 0.25, 0.33, 0.11, 0.03, 0.03, 0.0], "sumMean": 137.7, "rangeShare": [0.216667, 0.23, 0.225, 0.231667, 0.096667]}, "52": {"draws": 52, "freq": [9, 7, 7, 6, 4, 6, 6, 6, 7, 6, 5, 5, 11, 3, 11, 9, 5, 9, 7, 7, 4, 6, 5, 10, 6, 6, 10, 9, 6, 7, 11, 7, 7, 7, 6, 7, 6, 11, 6, 5, 7, 7, 6, 8, 6], "bonusFreq": [1, 3, 1, 0, 0, 0, 2, 1, 3, 2, 1, 0, 1, 2, 1, 2, 1, 0, 0, 1, 1, 1, 1, 2, 4, 1, 3, 1, 1, 1, 2, 0, 1, 1, 1, 1, 2, 0, 1, 0, 2, 0, 0, 0, 3], "oddEven": [0.0, 0.096154, 0.288462, 0.211538, 0.307692, 0.076923, 0.019231], "chi2": 24.1, "sumDist": [0.0, 0.019231, 0.057692, 0.153846, 0.25, 0.326923, 0.115385, 0.057692, 0.019231, 0.0], "sumMean": 140.0, "rangeShare": [0.205128, 0.230769, 0.221154, 0.233974, 0.108974]}}, "yearly": [{"year": 2002, "draws": 4, "winners": 0.5, "prize": 2001003400, "sales": 4646715500}, {"year": 2003, "draws": 52, "winners": 4.02, "prize": 7296607950, "sales": 73136611576}, {"year": 2004, "draws": 52, "winners": 4.85, "prize": 4449644243, "sales": 63082585134}, {"year": 2005, "draws": 53, "winners": 6.43, "prize": 2337672556, "sales": 51924867188}, {"year": 2006, "draws": 52, "winners": 5.81, "prize": 2477798749, "sales": 47529296634}, {"year": 2007, "draws": 52, "winners": 5.81, "prize": 2398778454, "sales": 43550423250}, {"year": 2008, "draws": 52, "winners": 5.48, "prize": 2628893655, "sales": 43615730826}, {"year": 2009, "draws": 52, "winners": 5.67, "prize": 2411724960, "sales": 45181136769}, {"year": 2010, "draws": 52, "winners": 5.6, "prize": 2932931827, "sales": 46551576519}, {"year": 2011, "draws": 53, "winners": 6.91, "prize": 2300512047, "sales": 53056016584}, {"year": 2012, "draws": 52, "winners": 6.65, "prize": 2490390423, "sales": 54483828769}, {"year": 2013, "draws": 52, "winners": 7.75, "prize": 2660993899, "sales": 57343982115}, {"year": 2014, "draws": 52, "winners": 7.52, "prize": 2290456497, "sales": 58482017750}, {"year": 2015, "draws": 52, "winners": 7.56, "prize": 2325697848, "sales": 62419556769}, {"year": 2016, "draws": 53, "winners": 8.64, "prize": 2214066163, "sales": 67916671150}, {"year": 2017, "draws": 52, "winners": 9.19, "prize": 2354143504, "sales": 72976702076}, {"year": 2018, "draws": 52, "winners": 9.31, "prize": 2328038408, "sales": 76165627442}, {"year": 2019, "draws": 52, "winners": 9.75, "prize": 2396548868, "sales": 82849318865}, {"year": 2020, "draws": 52, "winners": 10.1, "prize": 2461556915, "sales": 90558172692}, {"year": 2021, "draws": 52, "winners": 10.85, "prize": 2455187227, "sales": 98361471576}, {"year": 2022, "draws": 53, "winners": 12.6, "prize": 2554471515, "sales": 104105883018}, {"year": 2023, "draws": 52, "winners": 12.42, "prize": 2368756091, "sales": 108626514942}, {"year": 2024, "draws": 52, "winners": 14.67, "prize": 2100664332, "sales": 114020230480}, {"year": 2025, "draws": 52, "winners": 15.62, "prize": 2061324936, "sales": 119233559461}, {"year": 2026, "draws": 40, "winners": 15.1, "prize": 2171414849, "sales": 121916714550}], "cumulative": {"sales": 90201191525000, "winners": 10687, "payout": 21493319914765}, "records": {"topPrize": {"no": 19, "date": "2003-04-12", "winners": 1, "prize": 40722959400, "sales": 105957818000}, "lowPrize": {"no": 546, "date": "2013-05-18", "winners": 30, "prize": 405939950, "sales": 56713166000}, "mostWinners": {"no": 1128, "date": "2024-07-13", "winners": 63, "prize": 419925560, "sales": 111364194000}, "topSales": {"no": 10, "date": "2003-02-08", "winners": 13, "prize": 6430437900, "sales": 260856392000}, "noWinner": {"count": 14, "last": {"no": 463, "date": "2011-10-15", "winners": 0, "prize": 0, "sales": 49205151000}}, "drought": {"number": 5, "length": 73, "from": 1053, "to": 1125}}, "pairs": [24, 27, 21, 18, 16, 14, 21, 21, 21, 18, 25, 23, 17, 18, 23, 22, 21, 16, 22, 19, 9, 20, 20, 13, 22, 22, 30, 22, 12, 13, 14, 14, 25, 23, 16, 19, 19, 17, 20, 21, 24, 18, 15, 20, 16, 20, 15, 20, 15, 22, 12, 13, 22, 18, 18, 15, 23, 23, 22, 14, 22, 21, 13, 18, 11, 17, 24, 16, 20, 22, 16, 16, 18, 16, 23, 22, 11, 13, 19, 14, 19, 14, 15, 18, 17, 18, 20, 22, 12, 17, 21, 20, 17, 22, 21, 25, 29, 21, 21, 18, 18, 16, 16, 29, 12, 25, 19, 29, 9, 14, 28, 13, 14, 18, 19, 23, 20, 20, 18, 19, 21, 20, 17, 16, 17, 23, 19, 18, 21, 18, 15, 13, 19, 18, 23, 19, 19, 17, 18, 18, 23, 22, 20, 18, 26, 11, 16, 19, 15, 19, 25, 22, 18, 18, 9, 19, 20, 26, 19, 14, 12, 22, 16, 15, 24, 19, 17, 18, 12, 21, 20, 16, 13, 16, 11, 26, 24, 24, 24, 13, 15, 18, 20, 13, 26, 19, 18, 14, 13, 18, 21, 24, 14, 17, 17, 16, 16, 12, 26, 15, 12, 17, 12, 20, 12, 14, 19, 20, 17, 20, 24, 12, 12, 18, 25, 22, 24, 22, 18, 22, 25, 24, 23, 16, 23, 22, 10, 18, 14, 16, 16, 28, 10, 19, 19, 20, 9, 19, 17, 17, 25, 31, 22, 23, 18, 14, 18, 15, 12, 15, 22, 15, 20, 24, 20, 12, 24, 22, 18, 27, 26, 24, 13, 23, 18, 27, 17, 21, 20, 16, 23, 15, 14, 10, 25, 18, 18, 24, 21, 25, 20, 23, 18, 20, 18, 18, 18, 11, 13, 14, 7, 23, 17, 18, 15, 24, 23, 23, 14, 23, 13, 15, 14, 18, 8, 27, 17, 20, 19, 23, 16, 22, 17, 18, 22, 16, 20, 27, 14, 15, 18, 20, 20, 24, 16, 15, 22, 14, 13, 14, 14, 17, 18, 14, 10, 16, 12, 14, 18, 16, 15, 18, 19, 16, 15, 12, 11, 21, 15, 18, 15, 17, 19, 16, 15, 15, 14, 15, 14, 13, 17, 16, 19, 22, 20, 27, 13, 22, 23, 20, 12, 24, 16, 20, 15, 11, 19, 18, 19, 13, 31, 18, 20, 18, 22, 20, 22, 23, 14, 26, 18, 16, 15, 22, 12, 19, 22, 21, 21, 20, 26, 20, 16, 16, 34, 15, 13, 19, 14, 24, 19, 21, 17, 15, 19, 20, 17, 10, 19, 20, 22, 17, 26, 9, 18, 13, 16, 27, 18, 21, 20, 28, 14, 15, 20, 23, 22, 19, 14, 17, 31, 16, 25, 17, 16, 24, 17, 18, 21, 25, 29, 15, 17, 16, 21, 23, 24, 22, 27, 23, 17, 22, 21, 20, 17, 18, 28, 19, 24, 20, 16, 15, 20, 20, 21, 16, 26, 23, 13, 22, 24, 29, 23, 16, 21, 25, 25, 23, 20, 18, 19, 22, 18, 24, 29, 18, 16, 23, 17, 18, 22, 22, 19, 14, 18, 24, 23, 16, 14, 23, 22, 20, 21, 18, 20, 22, 22, 21, 23, 24, 14, 17, 17, 19, 21, 16, 18, 12, 26, 19, 24, 22, 23, 23, 21, 19, 18, 18, 15, 16, 14, 12, 17, 29, 17, 18, 20, 13, 17, 19, 18, 19, 24, 18, 20, 18, 17, 24, 20, 17, 10, 23, 25, 23, 18, 18, 20, 20, 15, 24, 13, 19, 18, 16, 24, 19, 21, 18, 21, 25, 17, 22, 21, 17, 24, 21, 22, 19, 15, 17, 18, 16, 19, 24, 20, 18, 21, 22, 17, 19, 21, 21, 24, 18, 16, 23, 17, 13, 15, 19, 21, 25, 16, 21, 25, 14, 24, 20, 13, 24, 19, 16, 19, 23, 28, 25, 15, 27, 18, 14, 19, 27, 24, 17, 12, 23, 21, 20, 27, 18, 29, 16, 20, 20, 23, 19, 20, 21, 10, 16, 18, 18, 17, 25, 17, 16, 13, 16, 17, 18, 20, 23, 24, 18, 27, 14, 14, 21, 22, 18, 20, 18, 18, 15, 19, 19, 17, 26, 18, 26, 20, 18, 15, 16, 20, 20, 17, 18, 26, 17, 17, 12, 14, 23, 23, 22, 11, 17, 20, 17, 20, 19, 28, 22, 23, 21, 17, 19, 15, 18, 13, 18, 23, 19, 12, 18, 17, 16, 15, 19, 12, 13, 19, 17, 15, 22, 15, 21, 23, 21, 13, 17, 12, 17, 13, 17, 11, 18, 18, 15, 16, 17, 18, 14, 16, 11, 11, 21, 21, 17, 16, 18, 18, 19, 9, 17, 22, 21, 20, 13, 13, 29, 10, 17, 22, 15, 19, 21, 19, 21, 19, 19, 19, 18, 21, 16, 18, 10, 26, 22, 15, 18, 18, 21, 11, 18, 14, 22, 19, 17, 27, 22, 18, 15, 18, 12, 12, 18, 17, 17, 26, 19, 19, 18, 21, 8, 19, 21, 20, 23, 19, 21, 16, 22, 17, 20, 24, 18, 15, 19, 23, 18, 17, 13, 17, 16, 27, 24, 23, 26, 20, 26, 16, 21, 21, 19, 25, 13, 23, 12, 12, 11, 23, 11, 18, 16, 17, 17, 20, 16, 22, 21, 14, 19, 11, 19, 13, 25, 24, 17, 14, 16, 23, 18, 22, 11, 17, 18, 24, 18, 23, 14, 24, 28, 22, 16, 20, 23, 23, 15, 23, 15, 23, 17, 23, 24, 19, 27, 17, 17, 21, 25, 15, 25, 18, 14, 23, 26, 17, 23, 18, 12, 18, 16, 15, 14, 19, 14, 19, 12, 13, 21, 18, 22, 23, 24, 21, 16, 33, 19, 19, 14, 22, 21, 20, 18, 16, 20, 20, 20, 21, 30, 19, 27, 23, 19, 24, 18, 20, 23, 11, 14, 25, 19, 19, 20, 17, 25, 15, 17, 16, 13, 18, 21, 24, 20, 31, 19, 15, 21, 10, 23, 21, 23, 15, 16, 19, 19, 23, 16, 22, 12, 22, 20, 23, 22, 15, 21, 19, 17, 17, 18, 20, 22, 19, 15, 24, 18, 19, 14], "combos": {"3": {"combos": 14190, "expected": 1.7533, "hist": [2392, 4358, 3787, 2254, 974, 300, 91, 28, 6], "theory": [2454.574, 4309.796, 3780.576, 2209.116, 967.365, 338.612, 98.692, 24.636, 6.634], "top": [{"numbers": [1, 3, 27], "count": 8}, {"numbers": [3, 8, 27], "count": 8}, {"numbers": [3, 20, 44], "count": 8}, {"numbers": [12, 15, 24], "count": 8}, {"numbers": [12, 34, 42], "count": 8}, {"numbers": [33, 37, 40], "count": 8}]}, "4": {"combos": 148995, "expected": 0.1252, "hist": [131399, 16571, 987, 37, 1], "theory": [131455.362, 16465.009, 1030.306, 42.947, 1.376], "top": [{"numbers": [3, 13, 33, 37], "count": 4}]}}, "shared": {"overall": 0.9977, "shapes": {"small": {"draws": 42, "ratio": 1.2346, "share": 0.03541}, "consecutive": {"draws": 21, "ratio": 1.4347, "share": 0.012614}}, "rejectShare": 0.046356, "top": {"no": 1128, "numbers": [1, 5, 8, 16, 28, 33], "winners": 63, "expected": 13.67, "ratio": 4.6078}}, "patterns": {"consecutive": [{"actual": [0.483119, 0.392283, 0.107717, 0.016881], "theory": [0.471253, 0.403931, 0.112203, 0.012614], "total": 1244}], "lowHigh": [{"actual": [0.013666, 0.090836, 0.25, 0.330386, 0.226688, 0.075563, 0.012862], "theory": [0.012394, 0.090887, 0.251134, 0.334846, 0.227217, 0.074362, 0.009161], "total": 1244}], "ending": [{"actual": [0.089362, 0.110932, 0.105439, 0.113478, 0.114684, 0.109057, 0.089362, 0.093382, 0.08963, 0.084673], "theory": [0.088889, 0.111111, 0.111111, 0.111111, 0.111111, 0.111111, 0.088889, 0.088889, 0.088889, 0.088889], "total": 7464}, {"actual": [0.039389, 0.262862, 0.4791, 0.21865], "theory": [0.032398, 0.260821, 0.497072, 0.20971], "total": 1244}], "carry": [{"actual": [0.386163, 0.42317, 0.169751, 0.020917], "theory": [0.400565, 0.424127, 0.151474, 0.023834], "total": 1243}, {"actual": [0.224457, 0.400644, 0.271118, 0.103781], "theory": [0.212612, 0.396013, 0.279356, 0.112019], "total": 1243}]}}</script>
 <script>
 (() => {
   const DATA = JSON.parse(document.getElementById('data').textContent);
@@ -1657,23 +1721,153 @@
     });
   }
 
-  // 제목 옆 추첨기: 처음 열 때 한 번 돌고, 누를 때마다 다시 돈다 (나오는 구슬 색은 무작위)
-  const machine = $('machine');
-  const outBall = machine.querySelector('.m-out');
-  function playMachine() {
-    outBall.setAttribute('class', `m-out mb${1 + Math.floor(Math.random() * 5)}`);
-    machine.classList.remove('play');
-    void machine.offsetWidth;  // 애니메이션을 처음부터 다시 시작하게 한다
-    machine.classList.add('play');
+  // 추첨기 애니메이션: 손잡이가 돌고 구슬이 섞인 뒤 하나가 굴러 나온다 (나오는 구슬 색은 무작위)
+  function playMachine(box) {
+    box.querySelector('.m-out').setAttribute('class', `m-out mb${1 + Math.floor(Math.random() * 5)}`);
+    box.classList.remove('play');
+    void box.offsetWidth;  // 애니메이션을 처음부터 다시 시작하게 한다
+    box.classList.add('play');
   }
-  machine.addEventListener('click', playMachine);
-  playMachine();
+
+  // ------------------------------------------------------------ 번호 뽑기
+  // 많이 고르는 모양. 판정 기준은 analyze.py의 POPULAR_SHAPES와 같다 (nums는 오름차순)
+  const POPULAR_SHAPES = {
+    small: { label: '12 이하 번호가 4개 이상', test: (nums) => nums.filter((n) => n <= 12).length >= 4 },
+    consecutive: { label: '연속 번호 쌍이 3개 이상', test: (nums) => nums.slice(1).filter((n, i) => n - nums[i] === 1).length >= 3 },
+  };
+  const PICK_HISTORY_MAX = 5;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pickMachine = $('pick-machine');
+  pickMachine.appendChild($('machine').querySelector('svg').cloneNode(true));
+  const pickHistory = [];
+  let picking = false;
+
+  // 0 ~ max-1 중 하나를 고르게 (브라우저의 암호용 난수, 나머지 연산으로 생기는 치우침은 버린다)
+  function randomInt(max) {
+    const limit = Math.floor(2 ** 32 / max) * max;
+    const buf = new Uint32Array(1);
+    do crypto.getRandomValues(buf); while (buf[0] >= limit);
+    return buf[0] % max;
+  }
+
+  function randomNumbers() {
+    const pool = Array.from({ length: 45 }, (_, i) => i + 1);
+    for (let i = 0; i < 6; i++) {
+      const j = i + randomInt(45 - i);
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 6).sort((a, b) => a - b);
+  }
+
+  // avoid면 많이 고르는 모양이 나왔을 때 다시 뽑는다. skipped: 그래서 버린 모양 이름들
+  function pickNumbers(avoid) {
+    const skipped = [];
+    for (;;) {
+      const nums = randomNumbers();
+      const shape = avoid && Object.values(POPULAR_SHAPES).find((s) => s.test(nums));
+      if (!shape) return { nums, skipped };
+      skipped.push(shape.label);
+    }
+  }
+
+  function renderPickHistory() {
+    $('pick-history-wrap').hidden = !pickHistory.length;
+    const list = $('pick-history');
+    list.textContent = '';
+    for (const nums of pickHistory) {
+      const li = htmlEl('li', '', null, list);
+      li.setAttribute('aria-label', nums.join(', '));
+      for (const n of nums) ball(n, li, true);
+    }
+  }
+
+  function drawPick() {
+    if (picking) return;
+    picking = true;
+    $('pick-btn').disabled = true;
+    const { nums, skipped } = pickNumbers($('pick-avoid').checked);
+    playMachine(pickMachine);
+
+    const tray = $('pick-tray');
+    tray.textContent = '';
+    const slots = nums.map(() => htmlEl('span', 'pick-slot', null, tray));
+    $('pick-note').textContent = '';
+    // 손잡이가 돌고 구슬이 섞이는 동안 기다렸다가 하나씩 꺼낸다
+    const start = reduceMotion ? 0 : 900;
+    const step = reduceMotion ? 0 : 170;
+    nums.forEach((n, i) => setTimeout(() => {
+      const b = ball(n, null);
+      b.classList.add('lg', 'pop');
+      slots[i].replaceWith(b);
+    }, start + step * i));
+    setTimeout(() => {
+      const again = skipped.length
+        ? ` 많이 고르는 모양(${[...new Set(skipped)].join(', ')})이 나와서 ${skipped.length}번 다시 뽑았습니다.` : '';
+      $('pick-note').textContent = `뽑은 번호: ${nums.join(', ')}.${again}`;
+      pickHistory.unshift(nums);
+      pickHistory.length = Math.min(pickHistory.length, PICK_HISTORY_MAX);
+      renderPickHistory();
+      picking = false;
+      $('pick-btn').disabled = false;
+    }, start + step * 6);
+  }
+
+  function renderPickEmpty() {
+    const tray = $('pick-tray');
+    for (let i = 0; i < 6; i++) htmlEl('span', 'pick-slot', null, tray);
+  }
+
+  function renderShared() {
+    const s = DATA.shared;
+    $('shared-sub').textContent = '회차마다 판매된 게임 수로 "모두 무작위로 골랐다면 1등이 몇 명 나왔을지"를 계산해 실제 1등 당첨자 수와 비교했습니다. ' +
+      `1배면 무작위와 같고, 1배보다 크면 그 번호를 고른 사람이 많았다는 뜻입니다. 1~${DATA.last.no}회 전체는 ${s.overall.toFixed(2)}배로 무작위와 거의 같습니다.`;
+    const t = s.top;
+    fillRecords($('shared'), [
+      ...Object.entries(POPULAR_SHAPES).map(([key, shape]) => {
+        const v = s.shapes[key];
+        return [`${shape.label}인 회차`, `${v.ratio.toFixed(2)}배`, `${fmt(v.draws)}회 · 무작위 조합 중 ${pct(v.share)}`];
+      }),
+      ['1등을 가장 많이 나눠 가진 회차', `${t.ratio.toFixed(1)}배`,
+        `${t.no}회 · ${t.numbers.join(', ')} · ${fmt(t.winners)}명 (무작위라면 약 ${t.expected.toFixed(0)}명)`],
+    ]);
+    $('shared-note').textContent = `'많이 고르는 모양 피하기'를 켜면 위 두 모양이 나올 때 다시 뽑습니다. ` +
+      `걸러지는 조합은 전체의 ${pct(s.rejectShare)}뿐이라 뽑히는 번호는 대부분 자동과 같고, 당첨 확률도 그대로입니다. ` +
+      `해당 회차가 많지 않아 배수에는 오차가 있고, ${t.no}회처럼 번호 모양으로는 설명되지 않는 쏠림도 있습니다. ` +
+      '판매 게임 수는 87회까지 1게임 2,000원, 88회부터 1,000원으로 계산했습니다.';
+
+    bindHelp($('pick-help'), '많이 고르는 모양 피하기', [
+      ['strong', '당첨 확률은 그대로입니다'],
+      ['p', '1등 당첨금은 당첨자끼리 나눠 가집니다. 사람들이 많이 고르는 번호는 당첨돼도 나눠 가질 사람이 많습니다.'],
+      ['p', `지난 회차의 1등 당첨자 수를 무작위로 골랐을 때 기대되는 수와 비교하면 ${Object.entries(POPULAR_SHAPES).map(([key, shape]) =>
+        `${shape.label}인 회차 ${s.shapes[key].ratio.toFixed(2)}배`).join(', ')}였습니다. 이 모양이 나오면 다시 뽑습니다.`],
+      ['p.muted', `걸러지는 조합은 전체의 ${pct(s.rejectShare)}입니다. 자세한 내용은 아래 카드에 있습니다.`],
+    ]);
+  }
+
+  $('pick-btn').addEventListener('click', drawPick);
+  pickMachine.addEventListener('click', drawPick);
+  $('pick-clear').addEventListener('click', () => {
+    pickHistory.length = 0;
+    renderPickHistory();
+  });
+
+  // 제목 옆 추첨기: 처음 열 때 한 번 돌고, 누르면 번호 뽑기 탭으로 가서 번호를 뽑는다
+  const machine = $('machine');
+  machine.addEventListener('click', () => {
+    playMachine(machine);
+    if (currentTab !== 'pick') showTab('pick');
+    const panel = $('panel-pick');
+    if (panel.getBoundingClientRect().top > innerHeight * 0.6) panel.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+    drawPick();
+  });
+  playMachine(machine);
 
   // ------------------------------------------------------------ 탭
   // 숨겨진 탭의 차트는 폭이 0이라 그리지 않으므로, 탭을 열 때 그 탭의 차트를 지금 폭에 맞게 그린다
   const TAB_CHARTS = {
     stats: () => { renderFreq(); renderOddEven(); },
     more: () => { renderSumRange(); renderPatternCharts(); renderTrend(); renderPairChart(); },
+    pick: () => {},  // 차트 없음
   };
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   let currentTab = 'stats';
@@ -1711,6 +1905,8 @@
   renderStatic();
   renderScoped();
   renderAllTime();
+  renderShared();
+  renderPickEmpty();
   const startTab = location.hash.slice(1);
   showTab(TAB_CHARTS[startTab] ? startTab : 'stats');
 
