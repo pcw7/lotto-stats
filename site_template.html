@@ -424,7 +424,7 @@
 
   <section class="card">
     <h2>내 번호 조회</h2>
-    <p class="sub">번호를 최대 6개까지 입력하면 전체·최근 100회·최근 50회 동안 각 번호가 몇 번 나왔는지 보여 주고, 위 차트에도 표시합니다.</p>
+    <p class="sub">번호를 최대 6개까지 입력하면 전체·최근 100회·최근 52회 동안 각 번호가 몇 번 나왔는지 보여 주고, 위 차트에도 표시합니다.</p>
     <form class="mine-form" id="mine-form">
       <input id="mine-input" inputmode="numeric" autocomplete="off" placeholder="예: 3 11 24 30 38 42" aria-label="번호 입력 (공백이나 쉼표로 구분)">
       <button type="submit" class="primary">조회</button>
@@ -526,7 +526,7 @@
 <script>
 (() => {
   const DATA = JSON.parse(document.getElementById('data').textContent);
-  const WIN_KEYS = ['all', '100', '50'];
+  const WIN_KEYS = ['all', '100', '52'];  // 52회 ≈ 1년
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const state = { win: 'all', mine: [] };
 
@@ -1026,7 +1026,7 @@
   document.querySelectorAll('[data-table]').forEach(bindTableToggle);
 
   // ------------------------------------------------------------ 내 번호 조회
-  // 기간 선택과 관계없이 전체·최근 100회·최근 50회를 한 표에 보여준다
+  // 기간 선택과 관계없이 전체·최근 100회·최근 52회를 한 표에 보여준다
   function renderMine() {
     const box = $('mine-result');
     box.textContent = '';
@@ -1045,11 +1045,11 @@
         ball(n, null, true),
         `${fmt(f)}회 (${tie ? '공동 ' : ''}${higher + 1}위)`,
         `${fmt(DATA.windows['100'].freq[n - 1])}회`,
-        `${fmt(DATA.windows['50'].freq[n - 1])}회`,
+        `${fmt(DATA.windows['52'].freq[n - 1])}회`,
         gap === 0 ? `${DATA.last.no}회 (최신)` : `${DATA.last.no - gap}회 (${gap}회 전)`,
       ];
     });
-    buildTable(htmlEl('div', 'table-wrap', null, box), ['번호', '전체 (순위)', '최근 100회', '최근 50회', '마지막 출현'], rows);
+    buildTable(htmlEl('div', 'table-wrap', null, box), ['번호', '전체 (순위)', '최근 100회', '최근 52회', '마지막 출현'], rows);
 
     if (state.mine.length === 6) {
       const all = DATA.windows.all;
