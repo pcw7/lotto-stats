@@ -6,6 +6,7 @@
 
 - 이미 저장된 회차는 건너뛰고 새 회차만 이어서 받는다. (매주 다시 실행하면 됨)
 - 한 번 요청에 10개 회차씩 오며, 요청 사이에 DELAY_SEC만큼 쉰다.
+- 마지막 추첨일로부터 7일이 안 지났으면(다음 회차가 아직 없으면) 아무 요청도 하지 않고 끝낸다.
 
 안전장치 (하나라도 걸리면 데이터는 요청하지 않고 멈춘다):
 1. 수집 전에 robots.txt를 읽어 데이터 주소가 금지돼 있으면 멈춘다. 읽지 못해도 멈춘다.
@@ -30,6 +31,7 @@ DATA_FILE = BASE_DIR / "data" / "lotto.csv"
 ROBOTS_SNAPSHOT = BASE_DIR / "robots_snapshot.txt"  # 마지막으로 사람이 확인한 robots.txt
 DELAY_SEC = 1.0  # 서버에 부담을 주지 않도록 요청 사이 대기 시간(초)
 STALE_DAYS = 8   # 최신 추첨일로부터 이만큼 지나도 새 회차가 없으면 이상한 것
+DRAW_INTERVAL_DAYS = 7  # 매주 토요일 추첨. 마지막 추첨일로부터 이만큼 지나야 다음 회차가 나온다
 KST = timezone(timedelta(hours=9))
 
 COLUMNS = [
@@ -87,10 +89,14 @@ def accept_robots():
     print("데이터 주소 수집: " + ("허용" if is_allowed(current) else "금지 → 수집하지 않습니다"))
 
 
+def days_since(draw_date):
+    """추첨일(YYYY-MM-DD)로부터 오늘(한국 시간)까지 지난 날 수."""
+    return (datetime.now(KST).date() - date.fromisoformat(draw_date)).days
+
+
 def check_fresh(last_date):
     """최신 추첨일이 STALE_DAYS일 넘게 지났으면 실패로 알린다. (조용히 멈춰 있는 것을 잡기 위해)"""
-    today = datetime.now(KST).date()
-    days = (today - date.fromisoformat(last_date)).days
+    days = days_since(last_date)
     if days >= STALE_DAYS:
         sys.exit(f"[확인 필요] 최신 회차 추첨일({last_date})로부터 {days}일이 지났는데 새 회차가 없습니다. "
                  "사이트 응답이 바뀌었을 수 있습니다.")
@@ -148,9 +154,14 @@ def main():
         accept_robots()
         return
 
-    check_robots()
-
     last_no, last_date = load_last()
+    # 마지막 추첨일로부터 7일이 안 지났으면 다음 회차가 아직 없으므로 동행복권에 아무 요청도 하지 않는다.
+    # (예: 아침 자동 갱신이 이미 반영한 주의 저녁 예비 실행)
+    if last_date and days_since(last_date) < DRAW_INTERVAL_DAYS:
+        print(f"저장된 마지막 회차: {last_no}회 ({last_date}) · 다음 추첨 전이라 수집하지 않습니다.")
+        return
+
+    check_robots()
     print(f"저장된 마지막 회차: {last_no}회" if last_no else "저장된 데이터 없음 → 1회차부터 수집")
 
     DATA_FILE.parent.mkdir(exist_ok=True)
